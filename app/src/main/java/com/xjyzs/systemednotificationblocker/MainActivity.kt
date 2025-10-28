@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xjyzs.systemednotificationblocker.ui.theme.SystemedNotificationBlockerTheme
-import java.io.File
 import java.io.OutputStream
 
 class MainActivity : ComponentActivity() {
