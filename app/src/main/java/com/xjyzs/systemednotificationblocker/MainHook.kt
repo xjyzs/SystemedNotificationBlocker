@@ -37,6 +37,7 @@ class MainHook : IXposedHookLoadPackage {
                                     title = extras.getString(Notification.EXTRA_TITLE) ?: ""
                                     text = extras.getString(Notification.EXTRA_TEXT) ?: ""
                                 }
+                                param.args[5]= System.currentTimeMillis().toInt()
                                 var blacklistMode = false
                                 var groups = ""
                                 if (File("${dataPath}blacklistMode").exists()) {
