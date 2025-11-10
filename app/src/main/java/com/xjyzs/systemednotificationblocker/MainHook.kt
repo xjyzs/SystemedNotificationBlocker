@@ -19,50 +19,54 @@ class MainHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == "android" || lpparam.packageName == "system") {
             try {
-                val notificationManagerClass = Class.forName("com.android.server.notification.NotificationManagerService", false, lpparam.classLoader)
+                val notificationManagerClass = Class.forName(
+                    "com.android.server.notification.NotificationManagerService",
+                    false,
+                    lpparam.classLoader
+                )
                 XposedBridge.hookAllMethods(
                     notificationManagerClass,
                     "enqueueNotificationInternal",
                     object : XC_MethodHook() {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             val pkg = param.args[0] as? String ?: ""
-                            if (pkg=="com.tencent.mm") {
-                                val notification = param.args[6] as? Notification
+                            if (pkg == "com.tencent.mm") {
+                                val notification = param.args[6] as Notification
+                                if (notification.channelId == "message_channel_new_id") {
 
-                                var title = ""
-                                var text = ""
+                                    var title: String
+                                    var text: String
 
-                                if (notification != null) {
                                     val extras: Bundle = notification.extras
                                     title = extras.getString(Notification.EXTRA_TITLE) ?: ""
                                     text = extras.getString(Notification.EXTRA_TEXT) ?: ""
-                                }
-                                param.args[5]= System.currentTimeMillis().toInt()
-                                var blacklistMode = false
-                                var groups = ""
-                                if (File("${dataPath}blacklistMode").exists()) {
-                                    if (File("${dataPath}blacklistMode").readText() == "true\n") {
-                                        blacklistMode = true
+                                    param.args[5] = System.currentTimeMillis().toInt()
+                                    var blacklistMode = false
+                                    var groups = ""
+                                    if (File("${dataPath}blacklistMode").exists()) {
+                                        if (File("${dataPath}blacklistMode").readText() == "true\n") {
+                                            blacklistMode = true
+                                        }
                                     }
-                                }
-                                if (File("${dataPath}groups").exists()) {
-                                    groups = File("${dataPath}groups").readText()
-                                }
-                                if ("@所有人 " in text) {
-                                    if (blacklistMode && title in groups || !blacklistMode && title !in groups) {
-                                        logToFile(
-                                            "${
-                                                SimpleDateFormat(
-                                                    "yyyy-MM-dd HH:mm:ss",
-                                                    Locale.getDefault()
-                                                ).format(
-                                                    Date()
-                                                )
-                                            } 成功拦截消息："
-                                        )
-                                        logToFile("标题: $title")
-                                        logToFile("内容: ${text}\n")
-                                        param.result = null
+                                    if (File("${dataPath}groups").exists()) {
+                                        groups = File("${dataPath}groups").readText()
+                                    }
+                                    if ("@所有人 " in text) {
+                                        if (blacklistMode && title in groups || !blacklistMode && title !in groups) {
+                                            logToFile(
+                                                "${
+                                                    SimpleDateFormat(
+                                                        "yyyy-MM-dd HH:mm:ss",
+                                                        Locale.getDefault()
+                                                    ).format(
+                                                        Date()
+                                                    )
+                                                } 成功拦截消息："
+                                            )
+                                            logToFile("标题: $title")
+                                            logToFile("内容: ${text}\n")
+                                            param.result = null
+                                        }
                                     }
                                 }
                             }
@@ -72,7 +76,7 @@ class MainHook : IXposedHookLoadPackage {
             } catch (e: Throwable) {
                 logToFile("Hook失败: ${e.message}")
             }
-        }else if(lpparam.packageName == "com.xjyzs.systemednotificationblocker") {
+        } else if (lpparam.packageName == "com.xjyzs.systemednotificationblocker") {
             XposedHelpers.findAndHookMethod(
                 "com.xjyzs.systemednotificationblocker.MainActivityKt",
                 lpparam.classLoader,
@@ -91,7 +95,7 @@ class MainHook : IXposedHookLoadPackage {
 fun logToFile(text: String?) {
     try {
         val file = File("/data/system/SystemedNotificationBlocker/log.txt")
-        file.appendText(text+"\n")
+        file.appendText(text + "\n")
     } catch (_: Exception) {
     }
 }
