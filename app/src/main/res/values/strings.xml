@@ -1,3 +1,13 @@
 <resources>
-    <string name="app_name">SystemedNotificationBlocker</string>
+    <string name="app_name" translatable="false">SystemedNotificationBlocker</string>
+    <string name="grant_root_first">Please grant the root permission first: %s</string>
+    <string name="confirm_reboot">Do you want to reboot now?</string>
+    <string name="module_activated">module activated</string>
+    <string name="module_not_activated">module is not activated</string>
+    <string name="blacklist_mode">blacklist mode</string>
+    <string name="blacklist">blacklist</string>
+    <string name="whitelist">whitelist</string>
+    <string name="group">groups(one item per line)</string>
+    <string name="reboot_OS">reboot OS</string>
+    <string name="title_activity_main2">MainActivity2</string>
 </resources>

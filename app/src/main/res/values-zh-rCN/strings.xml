@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="grant_root_first">请先授予root权限：%s</string>
+    <string name="confirm_reboot">确认重启吗</string>
+    <string name="module_activated">模块已激活</string>
+    <string name="module_not_activated">模块未激活</string>
+    <string name="blacklist_mode">黑名单模式</string>
+    <string name="blacklist">黑名单</string>
+    <string name="whitelist">白名单</string>
+    <string name="group">群聊名称(一行一个)</string>
+    <string name="reboot_OS">重启系统</string>
+</resources>

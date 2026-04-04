@@ -1,5 +1,6 @@
 package com.xjyzs.systemednotificationblocker
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.os.VibrationAttributes
@@ -46,11 +47,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import com.xjyzs.systemednotificationblocker.ui.theme.SystemedNotificationBlockerTheme
-import java.io.OutputStream
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,140 +60,206 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SystemedNotificationBlockerTheme {
-                Scaffold (modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainUI(Modifier.padding(innerPadding).fillMaxSize())
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    MainUI(
+                        Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize()
+                    )
                 }
             }
         }
     }
 }
 
-
-const val dataPath = "/data/system/SystemedNotificationBlocker/"
-
+@SuppressLint("WorldReadableFiles")
 @Composable
 fun MainUI(modifier: Modifier) {
-    var blacklistMode by remember { mutableStateOf(false) }
-    var groups by remember { mutableStateOf("") }
+    var blacklistModeMM by remember { mutableStateOf(false) }
+    var blacklistModeQQ by remember { mutableStateOf(false) }
+    var groupsMM by remember { mutableStateOf("") }
+    var groupsQQ by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val vibrator= context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     var showDialog by remember { mutableStateOf(false) }
-    var process: Process
-    var outputStream by remember { mutableStateOf<OutputStream?>(null) }
+    val pref = context.getSharedPreferences("main", Context.MODE_WORLD_READABLE)
     LaunchedEffect(Unit) {
         try {
-            if (readAsRoot("${dataPath}blacklistMode") == "true\n") {
-                blacklistMode = true
-            }
-            val txt = readAsRoot("${dataPath}groups")
-            groups = if (txt.isNotEmpty()) {
-                txt.substring(0, txt.length - 1)
-            } else {
-                txt
-            }
-            process = ProcessBuilder("su").apply {
-                redirectErrorStream(true)
-            }.start()
-            outputStream = process.outputStream
-            outputStream!!.write(("mkdir -p ${dataPath}\n").toByteArray())
-            outputStream!!.write(("chown system:system ${dataPath}\n").toByteArray())
-            outputStream!!.flush()
+            blacklistModeMM = pref.getBoolean("blacklistModeMM", false)
+            groupsMM = pref.getString("groupsMM", "") ?: ""
+            blacklistModeQQ = pref.getBoolean("blacklistModeQQ", false)
+            groupsQQ = pref.getString("groupsQQ", "") ?: ""
         } catch (e: Exception) {
-            Toast.makeText(context, "请先授予root权限：" + e.message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context, context.getString(R.string.grant_root_first, e.message), Toast.LENGTH_SHORT
+            ).show()
         }
     }
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("确认重启吗") },
+            title = { Text(stringResource(R.string.confirm_reboot)) },
             confirmButton = {
                 TextButton({
                     clickVibrate(vibrator)
-                    outputStream!!.write(("reboot\n").toByteArray())
-                    outputStream!!.flush()
+                    try {
+                        Runtime.getRuntime().exec(arrayOf("su", "-c", "reboot"))
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.grant_root_first, e.message),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }) {
                     Text("确认")
                 }
             },
             dismissButton = {
-                TextButton({ clickVibrate(vibrator)
-                    showDialog = false }) {
+                TextButton({
+                    clickVibrate(vibrator)
+                    showDialog = false
+                }) {
                     Text("取消")
                 }
             })
     }
-    Column(modifier.wrapContentSize(Alignment.Center).verticalScroll(rememberScrollState())){
-        Row(verticalAlignment = Alignment.CenterVertically){
+    Column(
+        modifier
+            .wrapContentSize(Alignment.Center)
+            .verticalScroll(rememberScrollState())
+    ) {
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (isModuleActive()) {
                 Icon(Icons.Default.CheckCircle, null, tint = Color.Green)
 
-            }else{
+            } else {
                 Icon(Icons.Default.AddCircle, null, Modifier.rotate(45f), tint = Color.Red)
             }
             Text(
                 if (isModuleActive()) {
-                    "模块已激活"
+                    stringResource(R.string.module_activated)
                 } else {
-                    "模块未激活"
+                    stringResource(R.string.module_not_activated)
                 }, fontSize = 24.sp, fontWeight = FontWeight.Bold
             )
         }
         Spacer(Modifier.height(36.dp))
-        Row(verticalAlignment = Alignment.CenterVertically){
+        Text("微信", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Button(
                 {
-                    blacklistMode = !blacklistMode
-                    outputStream!!.write(("echo $blacklistMode > ${dataPath}blacklistMode\n").toByteArray())
-                    outputStream!!.flush()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    Color.Transparent,
-                    LocalContentColor.current
-                ),
-                shape = RectangleShape,
-                contentPadding = PaddingValues(0.dp)
+                    blacklistModeMM = !blacklistModeMM
+                    pref.edit {
+                        putBoolean("blacklistModeMM", blacklistModeMM)
+                    }
+
+                }, colors = ButtonDefaults.buttonColors(
+                    Color.Transparent, LocalContentColor.current
+                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
             ) {
-                Text("黑名单模式", fontSize = 24.sp, fontWeight = FontWeight.Normal)
+                Text(
+                    stringResource(R.string.blacklist_mode),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Normal
+                )
                 Spacer(Modifier.weight(1f))
-                Switch(checked = blacklistMode, onCheckedChange = {
-                    blacklistMode = it
+                Switch(checked = blacklistModeMM, onCheckedChange = {
+                    blacklistModeMM = it
                     clickVibrate(vibrator)
-                    outputStream!!.write(("echo $blacklistMode > ${dataPath}blacklistMode\n").toByteArray())
-                    outputStream!!.write(("chown system:system ${dataPath}blacklistMode\n").toByteArray())
-                    outputStream!!.flush()
+                    pref.edit {
+                        putBoolean("blacklistModeMM", blacklistModeMM)
+                    }
                 })
             }
         }
         Spacer(Modifier.height(30.dp))
-        Text("${if (blacklistMode){"黑"}else{"白"}}名单群聊名称(每行一个)")
-        TextField(groups, {
-            groups=it
-            outputStream!!.write(("echo '''$groups''' > ${dataPath}groups\n").toByteArray())
-            outputStream!!.write(("chown system:system ${dataPath}groups\n").toByteArray())
-            outputStream!!.flush()
+        Text(
+            "${
+                stringResource(
+                    if (blacklistModeMM) {
+                        R.string.blacklist
+                    } else {
+                        R.string.whitelist
+                    }
+                )
+            }${stringResource(R.string.group)}"
+        )
+        TextField(groupsMM, {
+            groupsMM = it
+            pref.edit {
+                putString("groupsMM", groupsMM)
+            }
+        }, Modifier.fillMaxWidth(), maxLines = 10)
+        Spacer(Modifier.height(36.dp))
+
+
+        Text("QQ", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(10.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                {
+                    blacklistModeQQ = !blacklistModeQQ
+                    pref.edit {
+                        putBoolean("blacklistModeQQ", blacklistModeQQ)
+                    }
+
+                }, colors = ButtonDefaults.buttonColors(
+                    Color.Transparent, LocalContentColor.current
+                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    stringResource(R.string.blacklist_mode),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Spacer(Modifier.weight(1f))
+                Switch(checked = blacklistModeQQ, onCheckedChange = {
+                    blacklistModeQQ = it
+                    clickVibrate(vibrator)
+                    pref.edit {
+                        putBoolean("blacklistModeQQ", blacklistModeQQ)
+                    }
+                })
+            }
+        }
+        Spacer(Modifier.height(30.dp))
+        Text(
+            "${
+                stringResource(
+                    if (blacklistModeQQ) {
+                        R.string.blacklist
+                    } else {
+                        R.string.whitelist
+                    }
+                )
+            }${stringResource(R.string.group)}"
+        )
+        TextField(groupsQQ, {
+            groupsQQ = it
+            pref.edit {
+                putString("groupsQQ", groupsQQ)
+            }
         }, Modifier.fillMaxWidth(), maxLines = 10)
         Spacer(Modifier.height(60.dp))
         Button({
-            showDialog=true
+            showDialog = true
         }, Modifier.fillMaxWidth()) {
-            Text("重启系统")
+            Text(stringResource(R.string.reboot_OS))
         }
     }
 }
 
 
-fun clickVibrate(vibrator: Vibrator){
+fun clickVibrate(vibrator: Vibrator) {
     val attributes = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
     vibrator.vibrate(
-        VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK),
-        attributes
+        VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK), attributes
     )
 }
 
 @Keep
 fun isModuleActive(): Boolean = false
-
-fun readAsRoot(path: String): String {
-    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat $path"))
-    return process.inputStream.bufferedReader().use { it.readText() }
-}

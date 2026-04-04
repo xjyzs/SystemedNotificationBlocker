@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -10,37 +9,32 @@ android {
 
     defaultConfig {
         applicationId = "com.xjyzs.systemednotificationblocker"
-        minSdk = 35
+        minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        androidResources. localeFilters+= listOf("zh")
+        androidResources.localeFilters += listOf("zh-rCN")
     }
     signingConfigs {
-        val hasSigningInfo = System.getenv("KEY_STORE_PASSWORD") != null &&
-                System.getenv("KEY_ALIAS") != null &&
-                System.getenv("KEY_PASSWORD") != null &&
-                file("${project.rootDir}/keystore.jks").exists()
+        val hasSigningInfo =
+            !System.getenv("KEY_STORE_PASSWORD").isNullOrBlank() && !System.getenv("KEY_ALIAS")
+                .isNullOrBlank() && !System.getenv("KEY_PASSWORD")
+                .isNullOrBlank() && file("${project.rootDir}/keystore.jks").exists()
         if (hasSigningInfo) {
             create("release") {
                 storeFile = file("${project.rootDir}/keystore.jks")
                 storePassword = System.getenv("KEY_STORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: ""
-                enableV1Signing=false
+                enableV1Signing = false
             }
         }
     }
 
     flavorDimensions += "abi"
     productFlavors {
-        val signingConfig = if (signingConfigs.findByName("release") != null) {
-            signingConfigs.getByName("release")
-        } else {
-            signingConfigs.getByName("debug")
-        }
         create("x86") {
             dimension = "abi"
             ndk { abiFilters.add("x86") }
@@ -56,9 +50,22 @@ android {
             ndk { abiFilters.add("armeabi-v7a") }
             this.signingConfig = signingConfig
         }
-        create("arm64") {
+        create("arm64Minsdk35") {
             dimension = "abi"
             ndk { abiFilters.add("arm64-v8a") }
+            minSdk = 35
+            this.signingConfig = signingConfig
+        }
+        create("arm64Minsdk29") {
+            dimension = "abi"
+            ndk { abiFilters.add("arm64-v8a") }
+            minSdk = 29
+            this.signingConfig = signingConfig
+        }
+        create("arm64Minsdk26") {
+            dimension = "abi"
+            ndk { abiFilters.add("arm64-v8a") }
+            minSdk = 26
             this.signingConfig = signingConfig
         }
         create("universal") {
@@ -72,9 +79,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
+            signingConfig =
+                signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             packaging {
                 resources {
                     excludes += setOf(
@@ -106,6 +114,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -114,7 +124,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended")
-
 
     compileOnly(files("lib/XposedBridgeAPI-89.jar"))
 }
