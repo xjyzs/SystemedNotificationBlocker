@@ -47,8 +47,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if[ -n "${{ secrets.RELEASE_SIGNING_KEY }}" ]; then
-            echo "${{ secrets.RELEASE_SIGNING_KEY }}" | base64 --decode > keystore.jks
+          if [ -n "$secrets.RELEASE_SIGNING_KEY" ]; then
+            echo "$secrets.RELEASE_SIGNING_KEY" | base64 --decode > keystore.jks
           else
             touch keystore.jks
           fi
