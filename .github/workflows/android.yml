@@ -43,12 +43,13 @@ jobs:
 
       - name: Build Release APK (${{ matrix.variant.flavor }})
         env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$secrets.RELEASE_SIGNING_KEY" ]; then
-            echo "$secrets.RELEASE_SIGNING_KEY" | base64 --decode > keystore.jks
+          if [ -n "$RELEASE_SIGNING_KEY" ]; then
+            echo "$RELEASE_SIGNING_KEY" | base64 --decode > keystore.jks
           else
             touch keystore.jks
           fi
