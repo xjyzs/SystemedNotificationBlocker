@@ -3,7 +3,6 @@ package com.xjyzs.systemednotificationblocker
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.os.Bundle
-import de.robv.android.xposed.BuildConfig
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
@@ -42,7 +41,6 @@ class MainHook : IXposedHookLoadPackage {
                         override fun beforeHookedMethod(param: MethodHookParam) {
                             val pkg = param.args[0] as? String ?: ""
                             if (pkg == "com.tencent.mm") {
-                                logToFile(BuildConfig.APPLICATION_ID)
                                 val notification = param.args[6] as Notification
                                 if (notification.channelId == "message_channel_new_id") {
 
@@ -72,33 +70,28 @@ class MainHook : IXposedHookLoadPackage {
                                     }
                                 }
                             } else if (pkg == "com.tencent.mobileqq") {
-                                logToFile(BuildConfig.APPLICATION_ID)
                                 val notification = param.args[6] as Notification
-                                if (notification.channelId == "message_channel_new_id") {
-
-                                    var title: String
-                                    var text: String
-
-                                    val extras: Bundle = notification.extras
-                                    title = extras.getString(Notification.EXTRA_TITLE) ?: ""
-                                    text = extras.getString(Notification.EXTRA_TEXT) ?: ""
-                                    param.args[5] = System.currentTimeMillis().toInt()
-                                    if ("[有全体消息]" in text && text[0] == '[') {
-                                        if (blacklistModeQQ && title in groupsQQ || !blacklistModeQQ && title !in groupsQQ) {
-                                            logToFile(
-                                                "${
-                                                    SimpleDateFormat(
-                                                        "yyyy-MM-dd HH:mm:ss",
-                                                        Locale.getDefault()
-                                                    ).format(
-                                                        Date()
-                                                    )
-                                                } 成功拦截 QQ 消息："
-                                            )
-                                            logToFile("标题: $title")
-                                            logToFile("内容: ${text}\n")
-                                            param.result = null
-                                        }
+                                var title: String
+                                var text: String
+                                val extras: Bundle = notification.extras
+                                title = extras.getString(Notification.EXTRA_TITLE) ?: ""
+                                text = extras.getString(Notification.EXTRA_TEXT) ?: ""
+                                param.args[5] = System.currentTimeMillis().toInt()
+                                if ("[有全体消息]" in text && text[0] == '[') {
+                                    if (blacklistModeQQ && title in groupsQQ || !blacklistModeQQ && title !in groupsQQ) {
+                                        logToFile(
+                                            "${
+                                                SimpleDateFormat(
+                                                    "yyyy-MM-dd HH:mm:ss",
+                                                    Locale.getDefault()
+                                                ).format(
+                                                    Date()
+                                                )
+                                            } 成功拦截 QQ 消息："
+                                        )
+                                        logToFile("标题: $title")
+                                        logToFile("内容: ${text}\n")
+                                        param.result = null
                                     }
                                 }
                             }
