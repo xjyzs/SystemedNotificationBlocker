@@ -2,6 +2,7 @@ package com.xjyzs.systemednotificationblocker
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
@@ -129,7 +130,6 @@ fun MainUI(modifier: Modifier) {
             .wrapContentSize(Alignment.Center)
             .verticalScroll(rememberScrollState())
     ) {
-
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (isModuleActive()) {
                 Icon(Icons.Default.CheckCircle, null, tint = Color.Green)
@@ -146,6 +146,32 @@ fun MainUI(modifier: Modifier) {
             )
         }
         Spacer(Modifier.height(36.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                {
+                    blacklistModeMM = !blacklistModeMM
+                    pref.edit {
+                        putBoolean("removePrefix", blacklistModeMM)
+                    }
+
+                }, colors = ButtonDefaults.buttonColors(
+                    Color.Transparent, LocalContentColor.current
+                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    "移除\"@所有人\"前缀", fontSize = 24.sp, fontWeight = FontWeight.Normal
+                )
+                Spacer(Modifier.weight(1f))
+                Switch(checked = blacklistModeMM, onCheckedChange = {
+                    blacklistModeMM = it
+                    clickVibrate(vibrator)
+                    pref.edit {
+                        putBoolean("removePrefix", blacklistModeMM)
+                    }
+                })
+            }
+        }
+        Spacer(Modifier.height(30.dp))
         Text("微信", fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -255,6 +281,7 @@ fun MainUI(modifier: Modifier) {
 
 
 fun clickVibrate(vibrator: Vibrator) {
+    if (Build.VERSION.SDK_INT < 33) return
     val attributes = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
     vibrator.vibrate(
         VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK), attributes

@@ -20,14 +20,14 @@ class MainHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == "android" || lpparam.packageName == "system") {
             val pref = XSharedPreferences(
-                "com.xjyzs.systemednotificationblocker",
-                "main"
+                "com.xjyzs.systemednotificationblocker", "main"
             )
             pref.reload()
             val blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
             val groupsMM = pref.getString("groupsMM", "") ?: ""
             val blacklistModeQQ = pref.getBoolean("blacklistModeQQ", true)
             val groupsQQ = pref.getString("groupsQQ", "") ?: ""
+            val removePrefix = pref.getBoolean("removePrefix", true)
             try {
                 val notificationManagerClass = Class.forName(
                     "com.android.server.notification.NotificationManagerService",
@@ -56,8 +56,7 @@ class MainHook : IXposedHookLoadPackage {
                                             logToFile(
                                                 "${
                                                     SimpleDateFormat(
-                                                        "yyyy-MM-dd HH:mm:ss",
-                                                        Locale.getDefault()
+                                                        "yyyy-MM-dd HH:mm:ss", Locale.getDefault()
                                                     ).format(
                                                         Date()
                                                     )
@@ -66,6 +65,11 @@ class MainHook : IXposedHookLoadPackage {
                                             logToFile("标题: $title")
                                             logToFile("内容: ${text}\n")
                                             param.result = null
+                                        } else if (removePrefix && text.substringAfter(": @所有人 ")
+                                                .isNotEmpty()
+                                        ) {
+                                            text = text.replaceFirst("@所有人 ", "")
+                                            extras.putCharSequence(Notification.EXTRA_TEXT, text)
                                         }
                                     }
                                 }
@@ -82,8 +86,7 @@ class MainHook : IXposedHookLoadPackage {
                                         logToFile(
                                             "${
                                                 SimpleDateFormat(
-                                                    "yyyy-MM-dd HH:mm:ss",
-                                                    Locale.getDefault()
+                                                    "yyyy-MM-dd HH:mm:ss", Locale.getDefault()
                                                 ).format(
                                                     Date()
                                                 )
@@ -92,12 +95,23 @@ class MainHook : IXposedHookLoadPackage {
                                         logToFile("标题: $title")
                                         logToFile("内容: ${text}\n")
                                         param.result = null
+                                    } else if (removePrefix) {
+                                        logToFile(text)
+                                        var newText = text.replaceFirst("[有全体消息]", "")
+                                        val modified = newText.length < text.length
+                                        if (newText.substringAfter(": @全体成员 ").isNotEmpty()) {
+                                            newText = newText.replaceFirst("@全体成员 ", "")
+                                            logToFile(newText)
+                                        }
+                                        if (modified) extras.putCharSequence(
+                                            Notification.EXTRA_TEXT,
+                                            newText
+                                        )
                                     }
                                 }
                             }
                         }
-                    }
-                )
+                    })
             } catch (e: Throwable) {
                 logToFile("Hook失败: ${e.message}")
             }
@@ -110,8 +124,7 @@ class MainHook : IXposedHookLoadPackage {
                     override fun replaceHookedMethod(param: MethodHookParam): Any {
                         return true
                     }
-                }
-            )
+                })
         }
     }
 }
