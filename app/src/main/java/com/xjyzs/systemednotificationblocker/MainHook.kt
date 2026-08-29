@@ -16,6 +16,9 @@ import java.util.Date
 import java.util.Locale
 
 class MainHook : IXposedHookLoadPackage {
+    var shouldMuteGroupNote = hashMapOf<String, Int>() // 数值 > 0 时不屏蔽，收到非接龙消息时数值会减少
+    var lastGroupNoteTime = 0L
+
     @SuppressLint("PrivateApi")
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == "android" || lpparam.packageName == "system") {
@@ -28,6 +31,7 @@ class MainHook : IXposedHookLoadPackage {
             val blacklistModeQQ = pref.getBoolean("blacklistModeQQ", true)
             val groupsQQ = pref.getString("groupsQQ", "") ?: ""
             val removePrefix = pref.getBoolean("removePrefix", true)
+            val muteGroupNote = pref.getBoolean("muteGroupNote", true)
             try {
                 val notificationManagerClass = Class.forName(
                     "com.android.server.notification.NotificationManagerService",
@@ -50,7 +54,27 @@ class MainHook : IXposedHookLoadPackage {
                                     val extras: Bundle = notification.extras
                                     title = extras.getString(Notification.EXTRA_TITLE) ?: ""
                                     text = extras.getString(Notification.EXTRA_TEXT) ?: ""
-                                    param.args[5] = System.currentTimeMillis().toInt()
+                                    param.args[5] = System.currentTimeMillis().toInt() // 防止通知被覆盖、撤回
+                                    if (muteGroupNote) {
+                                        if (System.currentTimeMillis() - lastGroupNoteTime > 20) { // 同一条消息可能被 Hook 多次，只处理第一次的
+                                            if (": #接龙" in text && "1. " in text) {
+                                                if (shouldMuteGroupNote.getOrDefault(
+                                                        title, 0
+                                                    ) > 0
+                                                ) {
+                                                    // 静音
+                                                    XposedHelpers.setObjectField(
+                                                        notification,
+                                                        "mChannelId",
+                                                        "reminder_channel_id"
+                                                    )
+                                                }
+                                                shouldMuteGroupNote[title] = 2 // 接龙消息之间可穿插 1 条非接龙消息
+                                            } else if (title in shouldMuteGroupNote && shouldMuteGroupNote[title] != 0) shouldMuteGroupNote[title] =
+                                                shouldMuteGroupNote[title]!! - 1
+                                        }
+                                        lastGroupNoteTime = System.currentTimeMillis()
+                                    }
                                     if ("@所有人 " in text) {
                                         if (blacklistModeMM && title in groupsMM || !blacklistModeMM && title !in groupsMM) {
                                             logToFile(
@@ -104,8 +128,7 @@ class MainHook : IXposedHookLoadPackage {
                                             logToFile(newText)
                                         }
                                         if (modified) extras.putCharSequence(
-                                            Notification.EXTRA_TEXT,
-                                            newText
+                                            Notification.EXTRA_TEXT, newText
                                         )
                                     }
                                 }

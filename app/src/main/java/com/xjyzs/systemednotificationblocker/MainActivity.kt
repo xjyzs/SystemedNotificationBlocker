@@ -29,13 +29,17 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,12 +61,28 @@ import androidx.core.content.edit
 import com.xjyzs.systemednotificationblocker.ui.theme.SystemedNotificationBlockerTheme
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             SystemedNotificationBlockerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+                Scaffold(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    topBar = {
+                        LargeFlexibleTopAppBar(
+                            title = { Text(stringResource(R.string.app_name)) },
+                            scrollBehavior = scrollBehavior,
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            ),
+                        )
+                    },
+
+                    modifier = Modifier.fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                ) { innerPadding ->
                     MainUI(
                         Modifier
                             .padding(innerPadding)
@@ -76,20 +97,22 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("WorldReadableFiles")
 @Composable
 fun MainUI(modifier: Modifier) {
-    var blacklistModeMM by remember { mutableStateOf(false) }
-    var blacklistModeQQ by remember { mutableStateOf(false) }
+    var blacklistModeMM by remember { mutableStateOf(true) }
+    var blacklistModeQQ by remember { mutableStateOf(true) }
     var groupsMM by remember { mutableStateOf("") }
     var groupsQQ by remember { mutableStateOf("") }
+    var muteGroupNote by remember { mutableStateOf(true) }
     val context = LocalContext.current
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     var showDialog by remember { mutableStateOf(false) }
     val pref = context.getSharedPreferences("main", Context.MODE_WORLD_READABLE)
     LaunchedEffect(Unit) {
         try {
-            blacklistModeMM = pref.getBoolean("blacklistModeMM", false)
+            blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
             groupsMM = pref.getString("groupsMM", "") ?: ""
-            blacklistModeQQ = pref.getBoolean("blacklistModeQQ", false)
+            blacklistModeQQ = pref.getBoolean("blacklistModeQQ", true)
             groupsQQ = pref.getString("groupsQQ", "") ?: ""
+            muteGroupNote = pref.getBoolean("muteGroupNote", true)
         } catch (e: Exception) {
             Toast.makeText(
                 context, context.getString(R.string.grant_root_first, e.message), Toast.LENGTH_SHORT
@@ -127,7 +150,7 @@ fun MainUI(modifier: Modifier) {
     }
     Column(
         modifier
-            .wrapContentSize(Alignment.Center)
+            .wrapContentSize(Alignment.Center).padding(horizontal = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -142,10 +165,10 @@ fun MainUI(modifier: Modifier) {
                     stringResource(R.string.module_activated)
                 } else {
                     stringResource(R.string.module_not_activated)
-                }, fontSize = 24.sp, fontWeight = FontWeight.Bold
+                }, fontSize = 20.sp, fontWeight = FontWeight.Bold
             )
         }
-        Spacer(Modifier.height(36.dp))
+        Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Button(
                 {
@@ -159,7 +182,7 @@ fun MainUI(modifier: Modifier) {
                 ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
-                    "移除\"@所有人\"前缀", fontSize = 24.sp, fontWeight = FontWeight.Normal
+                    "移除\"@所有人\"前缀", fontSize = 20.sp, fontWeight = FontWeight.Normal
                 )
                 Spacer(Modifier.weight(1f))
                 Switch(checked = blacklistModeMM, onCheckedChange = {
@@ -177,6 +200,33 @@ fun MainUI(modifier: Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Button(
                 {
+                    muteGroupNote = !muteGroupNote
+                    pref.edit {
+                        putBoolean("muteGroupNote", muteGroupNote)
+                    }
+                }, colors = ButtonDefaults.buttonColors(
+                    Color.Transparent, LocalContentColor.current
+                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    "静默重复接龙",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Spacer(Modifier.weight(1f))
+                Switch(checked = muteGroupNote, onCheckedChange = {
+                    muteGroupNote = it
+                    clickVibrate(vibrator)
+                    pref.edit {
+                        putBoolean("muteGroupNote", muteGroupNote)
+                    }
+                })
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                {
                     blacklistModeMM = !blacklistModeMM
                     pref.edit {
                         putBoolean("blacklistModeMM", blacklistModeMM)
@@ -188,7 +238,7 @@ fun MainUI(modifier: Modifier) {
             ) {
                 Text(
                     stringResource(R.string.blacklist_mode),
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Normal
                 )
                 Spacer(Modifier.weight(1f))
@@ -201,7 +251,7 @@ fun MainUI(modifier: Modifier) {
                 })
             }
         }
-        Spacer(Modifier.height(30.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
             "${
                 stringResource(
@@ -211,14 +261,14 @@ fun MainUI(modifier: Modifier) {
                         R.string.whitelist
                     }
                 )
-            }${stringResource(R.string.group)}"
+            }${stringResource(R.string.group)}", color = MaterialTheme.colorScheme.primary
         )
         TextField(groupsMM, {
             groupsMM = it
             pref.edit {
                 putString("groupsMM", groupsMM)
             }
-        }, Modifier.fillMaxWidth(), maxLines = 10)
+        }, Modifier.fillMaxWidth(), maxLines = 8)
         Spacer(Modifier.height(36.dp))
 
 
@@ -239,7 +289,7 @@ fun MainUI(modifier: Modifier) {
             ) {
                 Text(
                     stringResource(R.string.blacklist_mode),
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Normal
                 )
                 Spacer(Modifier.weight(1f))
@@ -252,7 +302,7 @@ fun MainUI(modifier: Modifier) {
                 })
             }
         }
-        Spacer(Modifier.height(30.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
             "${
                 stringResource(
@@ -262,15 +312,15 @@ fun MainUI(modifier: Modifier) {
                         R.string.whitelist
                     }
                 )
-            }${stringResource(R.string.group)}"
+            }${stringResource(R.string.group)}", color = MaterialTheme.colorScheme.primary
         )
         TextField(groupsQQ, {
             groupsQQ = it
             pref.edit {
                 putString("groupsQQ", groupsQQ)
             }
-        }, Modifier.fillMaxWidth(), maxLines = 10)
-        Spacer(Modifier.height(60.dp))
+        }, Modifier.fillMaxWidth(), maxLines = 8)
+        Spacer(Modifier.height(20.dp))
         Button({
             showDialog = true
         }, Modifier.fillMaxWidth()) {
