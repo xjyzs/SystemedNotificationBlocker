@@ -1,5 +1,9 @@
-# 系统级微信/QQ @所有人消息屏蔽 Xposed 模块
+# 系统级 微信/QQ 消息优化 Xposed 模块
 还在被不该出现的@**所有人**消息打扰吗？来试试这款屏蔽器吧!
+## 功能
+- 屏蔽指定群聊的 **@所有人** 消息
+- 在通知栏保留所有消息，包括**已撤回**消息，防止旧消息被新消息覆盖
+- 静默重复的**接龙**消息
 ## 实现原理
 本项目为 Xposed 模块，通过 hook 系统框架`com.android.server.notification.NotificationManagerService`的`notificationManagerClass`实现
 ## 使用方法
@@ -10,7 +14,7 @@
 > 模拟器可下载`app-x86_64-release.apk`  
 > 如果不清楚，下载`app-universal-release.apk`
 > 
-在 Lsposed 中启用本模块，勾选系统框架  
+在 LSposed 中启用本模块，勾选系统框架  
 打开本模块，配置自定义屏蔽逻辑  
 重启手机
 
