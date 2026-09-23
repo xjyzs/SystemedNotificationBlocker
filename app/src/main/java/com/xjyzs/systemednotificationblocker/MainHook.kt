@@ -16,7 +16,7 @@ import java.util.Date
 import java.util.Locale
 
 class MainHook : IXposedHookLoadPackage {
-    var shouldMuteGroupNote = hashMapOf<String, Int>() // 数值 > 0 时不屏蔽，收到非接龙消息时数值会减少
+    var shouldMuteGroupNote = mutableMapOf<String, Int>() // 数值 > 0 时不屏蔽，收到非接龙消息时数值会减少
     var lastGroupNoteTime = 0L
 
     @SuppressLint("PrivateApi")
@@ -27,11 +27,14 @@ class MainHook : IXposedHookLoadPackage {
             )
             pref.reload()
             val blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
-            val groupsMM = pref.getString("groupsMM", "") ?: ""
+            val groupsMMSet = (pref.getString("groupsMM", "") ?: "").split("\n").map { it.trim() }
+                .filter { it.isNotEmpty() }.toSet()
             val blacklistModeQQ = pref.getBoolean("blacklistModeQQ", true)
-            val groupsQQ = pref.getString("groupsQQ", "") ?: ""
-            val removePrefix = pref.getBoolean("removePrefix", true)
+            val groupsQQSet = (pref.getString("groupsQQ", "") ?: "").split("\n").map { it.trim() }
+                .filter { it.isNotEmpty() }.toSet()
+            val removePrefix = pref.getBoolean("removePrefix", false)
             val muteGroupNote = pref.getBoolean("muteGroupNote", true)
+            val muteGroupTodo = pref.getBoolean("muteGroupTodo", true)
             try {
                 val notificationManagerClass = Class.forName(
                     "com.android.server.notification.NotificationManagerService",
@@ -76,21 +79,26 @@ class MainHook : IXposedHookLoadPackage {
                                         lastGroupNoteTime = System.currentTimeMillis()
                                     }
                                     if ("@所有人 " in text) {
-                                        if (blacklistModeMM && title in groupsMM || !blacklistModeMM && title !in groupsMM) {
-                                            logToFile(
-                                                "${
-                                                    SimpleDateFormat(
-                                                        "yyyy-MM-dd HH:mm:ss", Locale.getDefault()
-                                                    ).format(
-                                                        Date()
-                                                    )
-                                                } 成功拦截 微信 消息："
-                                            )
-                                            logToFile("标题: $title")
-                                            logToFile("内容: ${text}\n")
+                                        var shouldBlock = !blacklistModeMM
+                                        for (group in groupsMMSet) {
+                                            if (blacklistModeMM) { // 黑名单
+                                                if (group in title) {
+                                                    shouldBlock = true
+                                                    break
+                                                }
+                                            } else { // 白名单
+                                                if (group in title) {
+                                                    shouldBlock = false
+                                                    break
+                                                }
+                                            }
+                                        }
+                                        if (shouldBlock) {
+                                            singleLog("微信", title, text)
                                             param.result = null
-                                        } else if (removePrefix && text.substringAfter(": @所有人 ")
-                                                .isNotEmpty()
+                                        } else if (removePrefix && ": @所有人 " in text && text.substringAfter(
+                                                ": @所有人 "
+                                            ).isNotEmpty()
                                         ) {
                                             text = text.replaceFirst("@所有人 ", "")
                                             extras.putCharSequence(Notification.EXTRA_TEXT, text)
@@ -105,25 +113,38 @@ class MainHook : IXposedHookLoadPackage {
                                 title = extras.getString(Notification.EXTRA_TITLE) ?: ""
                                 text = extras.getString(Notification.EXTRA_TEXT) ?: ""
                                 param.args[5] = System.currentTimeMillis().toInt()
+                                if (muteGroupTodo) {
+                                    if ("还有待办需要处理" in title && "马上处理" in text || "有人设置了群待办" in title) {
+                                        singleLog("QQ", title, text)
+                                        param.result = null
+                                        return
+                                    }
+                                }
                                 if ("[有全体消息]" in text && text[0] == '[') {
-                                    if (blacklistModeQQ && title in groupsQQ || !blacklistModeQQ && title !in groupsQQ) {
-                                        logToFile(
-                                            "${
-                                                SimpleDateFormat(
-                                                    "yyyy-MM-dd HH:mm:ss", Locale.getDefault()
-                                                ).format(
-                                                    Date()
-                                                )
-                                            } 成功拦截 QQ 消息："
-                                        )
-                                        logToFile("标题: $title")
-                                        logToFile("内容: ${text}\n")
+                                    var shouldBlock = !blacklistModeQQ
+                                    for (group in groupsQQSet) {
+                                        if (blacklistModeQQ) { // 黑名单
+                                            if (group in title) {
+                                                shouldBlock = true
+                                                break
+                                            }
+                                        } else { // 白名单
+                                            if (group in title) {
+                                                shouldBlock = false
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if (shouldBlock) {
+                                        singleLog("QQ", title, text)
                                         param.result = null
                                     } else if (removePrefix) {
                                         logToFile(text)
                                         var newText = text.replaceFirst("[有全体消息]", "")
                                         val modified = newText.length < text.length
-                                        if (newText.substringAfter(": @全体成员 ").isNotEmpty()) {
+                                        if (": @全体成员 " in newText && newText.substringAfter(": @全体成员 ")
+                                                .isNotEmpty()
+                                        ) {
                                             newText = newText.replaceFirst("@全体成员 ", "")
                                             logToFile(newText)
                                         }
@@ -159,4 +180,18 @@ fun logToFile(text: String?) {
         file.appendText(text + "\n")
     } catch (_: Exception) {
     }
+}
+
+fun singleLog(type: String, title: String, text: String) {
+    logToFile(
+        "${
+            SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss", Locale.getDefault()
+            ).format(
+                Date()
+            )
+        } 成功拦截 $type 消息："
+    )
+    logToFile("标题: $title")
+    logToFile("内容: ${text}\n")
 }

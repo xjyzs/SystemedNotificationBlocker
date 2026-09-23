@@ -7,7 +7,6 @@
     <string name="blacklist_mode">blacklist mode</string>
     <string name="blacklist">blacklist</string>
     <string name="whitelist">whitelist</string>
-    <string name="group">groups(one item per line)</string>
+    <string name="group">group names / keywords</string>
     <string name="reboot_OS">reboot OS</string>
-    <string name="title_activity_main2">MainActivity2</string>
 </resources>

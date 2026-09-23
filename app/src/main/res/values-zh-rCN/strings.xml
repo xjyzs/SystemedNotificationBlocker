@@ -7,6 +7,6 @@
     <string name="blacklist_mode">黑名单模式</string>
     <string name="blacklist">黑名单</string>
     <string name="whitelist">白名单</string>
-    <string name="group">群聊名称(一行一个)</string>
+    <string name="group">群聊名称 / 关键词</string>
     <string name="reboot_OS">重启系统</string>
 </resources>

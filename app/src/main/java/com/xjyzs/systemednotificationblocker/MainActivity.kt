@@ -13,7 +13,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.Keep
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,21 +27,19 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -79,8 +75,8 @@ class MainActivity : ComponentActivity() {
                             ),
                         )
                     },
-
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
                         .nestedScroll(scrollBehavior.nestedScrollConnection)
                 ) { innerPadding ->
                     MainUI(
@@ -99,9 +95,11 @@ class MainActivity : ComponentActivity() {
 fun MainUI(modifier: Modifier) {
     var blacklistModeMM by remember { mutableStateOf(true) }
     var blacklistModeQQ by remember { mutableStateOf(true) }
-    var groupsMM by remember { mutableStateOf("") }
-    var groupsQQ by remember { mutableStateOf("") }
+    val groupsMM = remember { mutableStateListOf<String>() }
+    val groupsQQ = remember { mutableStateListOf<String>() }
+    var removePrefix by remember { mutableStateOf(false) }
     var muteGroupNote by remember { mutableStateOf(true) }
+    var muteGroupTodo by remember { mutableStateOf(true) }
     val context = LocalContext.current
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     var showDialog by remember { mutableStateOf(false) }
@@ -109,10 +107,16 @@ fun MainUI(modifier: Modifier) {
     LaunchedEffect(Unit) {
         try {
             blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
-            groupsMM = pref.getString("groupsMM", "") ?: ""
+            val groupsMMStr = pref.getString("groupsMM", "") ?: ""
+            groupsMM.clear()
+            groupsMM.addAll(groupsMMStr.split("\n"))
             blacklistModeQQ = pref.getBoolean("blacklistModeQQ", true)
-            groupsQQ = pref.getString("groupsQQ", "") ?: ""
+            val groupsQQStr = pref.getString("groupsQQ", "") ?: ""
+            groupsQQ.clear()
+            groupsQQ.addAll(groupsQQStr.split("\n"))
+            removePrefix = pref.getBoolean("removePrefix", false)
             muteGroupNote = pref.getBoolean("muteGroupNote", true)
+            muteGroupTodo = pref.getBoolean("muteGroupTodo", true)
         } catch (e: Exception) {
             Toast.makeText(
                 context, context.getString(R.string.grant_root_first, e.message), Toast.LENGTH_SHORT
@@ -150,7 +154,8 @@ fun MainUI(modifier: Modifier) {
     }
     Column(
         modifier
-            .wrapContentSize(Alignment.Center).padding(horizontal = 10.dp)
+            .wrapContentSize(Alignment.Center)
+            .padding(horizontal = 10.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,158 +174,64 @@ fun MainUI(modifier: Modifier) {
             )
         }
         Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(
-                {
-                    blacklistModeMM = !blacklistModeMM
-                    pref.edit {
-                        putBoolean("removePrefix", blacklistModeMM)
-                    }
-
-                }, colors = ButtonDefaults.buttonColors(
-                    Color.Transparent, LocalContentColor.current
-                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
-            ) {
-                Text(
-                    "移除\"@所有人\"前缀", fontSize = 20.sp, fontWeight = FontWeight.Normal
-                )
-                Spacer(Modifier.weight(1f))
-                Switch(checked = blacklistModeMM, onCheckedChange = {
-                    blacklistModeMM = it
-                    clickVibrate(vibrator)
-                    pref.edit {
-                        putBoolean("removePrefix", blacklistModeMM)
-                    }
-                })
+        SwitchRow("移除\"@所有人\"前缀", removePrefix) {
+            clickVibrate(vibrator)
+            removePrefix = !removePrefix
+            pref.edit {
+                putBoolean("removePrefix", removePrefix)
             }
         }
-        Spacer(Modifier.height(30.dp))
+        HorizontalDivider(Modifier.padding(vertical = 20.dp))
         Text("微信", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(
-                {
-                    muteGroupNote = !muteGroupNote
-                    pref.edit {
-                        putBoolean("muteGroupNote", muteGroupNote)
-                    }
-                }, colors = ButtonDefaults.buttonColors(
-                    Color.Transparent, LocalContentColor.current
-                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
-            ) {
-                Text(
-                    "静默重复接龙",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Spacer(Modifier.weight(1f))
-                Switch(checked = muteGroupNote, onCheckedChange = {
-                    muteGroupNote = it
-                    clickVibrate(vibrator)
-                    pref.edit {
-                        putBoolean("muteGroupNote", muteGroupNote)
-                    }
-                })
+        SwitchRow("静默重复接龙", muteGroupNote) {
+            clickVibrate(vibrator)
+            muteGroupNote = !muteGroupNote
+            pref.edit {
+                putBoolean("muteGroupNote", muteGroupNote)
             }
         }
-        Spacer(Modifier.height(20.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(
-                {
-                    blacklistModeMM = !blacklistModeMM
-                    pref.edit {
-                        putBoolean("blacklistModeMM", blacklistModeMM)
-                    }
-
-                }, colors = ButtonDefaults.buttonColors(
-                    Color.Transparent, LocalContentColor.current
-                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
-            ) {
-                Text(
-                    stringResource(R.string.blacklist_mode),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Spacer(Modifier.weight(1f))
-                Switch(checked = blacklistModeMM, onCheckedChange = {
-                    blacklistModeMM = it
-                    clickVibrate(vibrator)
-                    pref.edit {
-                        putBoolean("blacklistModeMM", blacklistModeMM)
-                    }
-                })
+        SwitchRow(stringResource(R.string.blacklist_mode), blacklistModeMM) {
+            blacklistModeMM = !blacklistModeMM
+            clickVibrate(vibrator)
+            pref.edit {
+                putBoolean("blacklistModeMM", blacklistModeMM)
             }
         }
         Spacer(Modifier.height(10.dp))
         Text(
             "${
-                stringResource(
-                    if (blacklistModeMM) {
-                        R.string.blacklist
-                    } else {
-                        R.string.whitelist
-                    }
-                )
+                stringResource(if (blacklistModeMM) R.string.blacklist else R.string.whitelist)
             }${stringResource(R.string.group)}", color = MaterialTheme.colorScheme.primary
         )
-        TextField(groupsMM, {
-            groupsMM = it
-            pref.edit {
-                putString("groupsMM", groupsMM)
-            }
-        }, Modifier.fillMaxWidth(), maxLines = 8)
-        Spacer(Modifier.height(36.dp))
+        GroupsEditor(groupsMM, "groupsMM", pref, vibrator)
+
+
+        HorizontalDivider(Modifier.padding(vertical = 20.dp))
 
 
         Text("QQ", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(
-                {
-                    blacklistModeQQ = !blacklistModeQQ
-                    pref.edit {
-                        putBoolean("blacklistModeQQ", blacklistModeQQ)
-                    }
-
-                }, colors = ButtonDefaults.buttonColors(
-                    Color.Transparent, LocalContentColor.current
-                ), shape = RectangleShape, contentPadding = PaddingValues(0.dp)
-            ) {
-                Text(
-                    stringResource(R.string.blacklist_mode),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Normal
-                )
-                Spacer(Modifier.weight(1f))
-                Switch(checked = blacklistModeQQ, onCheckedChange = {
-                    blacklistModeQQ = it
-                    clickVibrate(vibrator)
-                    pref.edit {
-                        putBoolean("blacklistModeQQ", blacklistModeQQ)
-                    }
-                })
+        SwitchRow("屏蔽群待办", muteGroupTodo) {
+            muteGroupTodo = !muteGroupTodo
+            clickVibrate(vibrator)
+            pref.edit {
+                putBoolean("muteGroupTodo", muteGroupTodo)
             }
         }
-        Spacer(Modifier.height(10.dp))
+
+        SwitchRow(stringResource(R.string.blacklist_mode), blacklistModeQQ) {
+            blacklistModeQQ = !blacklistModeQQ
+            clickVibrate(vibrator)
+            pref.edit {
+                putBoolean("blacklistModeQQ", blacklistModeQQ)
+            }
+        }
         Text(
             "${
-                stringResource(
-                    if (blacklistModeQQ) {
-                        R.string.blacklist
-                    } else {
-                        R.string.whitelist
-                    }
-                )
+                stringResource(if (blacklistModeQQ) R.string.blacklist else R.string.whitelist)
             }${stringResource(R.string.group)}", color = MaterialTheme.colorScheme.primary
         )
-        TextField(groupsQQ, {
-            groupsQQ = it
-            pref.edit {
-                putString("groupsQQ", groupsQQ)
-            }
-        }, Modifier.fillMaxWidth(), maxLines = 8)
-        Spacer(Modifier.height(20.dp))
+        GroupsEditor(groupsQQ, "groupsQQ", pref, vibrator)
+        HorizontalDivider(Modifier.padding(vertical = 20.dp))
         Button({
             showDialog = true
         }, Modifier.fillMaxWidth()) {
