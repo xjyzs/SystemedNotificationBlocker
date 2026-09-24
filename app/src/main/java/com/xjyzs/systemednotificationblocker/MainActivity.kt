@@ -101,9 +101,15 @@ fun MainUI(modifier: Modifier) {
     var muteGroupNote by remember { mutableStateOf(true) }
     var muteGroupTodo by remember { mutableStateOf(true) }
     val context = LocalContext.current
-    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
     var showDialog by remember { mutableStateOf(false) }
-    val pref = context.getSharedPreferences("main", Context.MODE_WORLD_READABLE)
+    val pref = remember {
+        runCatching {
+            context.getSharedPreferences("main", Context.MODE_WORLD_READABLE)
+        }.getOrElse {
+            context.getSharedPreferences("main", Context.MODE_PRIVATE)
+        }
+    }
     LaunchedEffect(Unit) {
         try {
             blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
