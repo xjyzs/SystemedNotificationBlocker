@@ -1,4 +1,4 @@
-package com.xjyzs.systemednotificationblocker
+package io.github.xjyzs.systemednotificationblocker
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -54,7 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import com.xjyzs.systemednotificationblocker.ui.theme.SystemedNotificationBlockerTheme
+import io.github.xjyzs.systemednotificationblocker.ui.theme.SystemedNotificationBlockerTheme
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)

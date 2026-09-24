@@ -1,5 +1,7 @@
-package com.xjyzs.systemednotificationblocker
+package io.github.xjyzs.systemednotificationblocker
 
+import android.content.SharedPreferences
+import android.os.Vibrator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,8 +70,8 @@ fun SwitchRow(title: String, checked: Boolean, onCheckedChange: () -> Unit) {
 fun GroupsEditor(
     groups: SnapshotStateList<String>,
     key: String,
-    pref: android.content.SharedPreferences,
-    vibrator: android.os.Vibrator
+    pref: SharedPreferences,
+    vibrator: Vibrator
 ) {
     var dialogExpanded by remember { mutableStateOf(false) }
     var indexToDelete by remember { mutableIntStateOf(-1) }

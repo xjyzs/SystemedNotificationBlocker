@@ -1,4 +1,4 @@
-package com.xjyzs.systemednotificationblocker
+package io.github.xjyzs.systemednotificationblocker
 
 import android.annotation.SuppressLint
 import android.app.Notification

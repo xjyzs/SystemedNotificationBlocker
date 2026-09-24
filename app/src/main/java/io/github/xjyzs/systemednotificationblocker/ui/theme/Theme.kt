@@ -1,6 +1,5 @@
-package com.xjyzs.systemednotificationblocker.ui.theme
+package io.github.xjyzs.systemednotificationblocker.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

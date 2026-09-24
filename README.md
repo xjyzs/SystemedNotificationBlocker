@@ -12,6 +12,9 @@
 - 静默重复的**接龙**消息
 - 屏蔽**群待办**通知
 
+## 亮点
+- 只 Hook 系统框架, 不容易被目标应用检测
+
 ## 实现原理
 
 本项目为 Xposed 模块，通过 hook 系统框架`com.android.server.notification.NotificationManagerService`的

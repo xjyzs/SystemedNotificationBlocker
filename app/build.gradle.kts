@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.xjyzs.systemednotificationblocker"
+    namespace = "io.github.xjyzs.systemednotificationblocker"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.xjyzs.systemednotificationblocker"
+        applicationId = "io.github.xjyzs.systemednotificationblocker"
         minSdk = 26
         targetSdk = 37
         versionCode = 7
