@@ -23,7 +23,7 @@ class MainHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == "android" || lpparam.packageName == "system") {
             val pref = XSharedPreferences(
-                "com.xjyzs.systemednotificationblocker", "main"
+                "io.github.xjyzs.systemednotificationblocker", "main"
             )
             pref.reload()
             val blacklistModeMM = pref.getBoolean("blacklistModeMM", true)
@@ -159,9 +159,9 @@ class MainHook : IXposedHookLoadPackage {
             } catch (e: Throwable) {
                 logToFile("Hook失败: ${e.message}")
             }
-        } else if (lpparam.packageName == "com.xjyzs.systemednotificationblocker") {
+        } else if (lpparam.packageName == "io.github.xjyzs.systemednotificationblocker") {
             XposedHelpers.findAndHookMethod(
-                "com.xjyzs.systemednotificationblocker.MainActivityKt",
+                "io.github.xjyzs.systemednotificationblocker.MainActivityKt",
                 lpparam.classLoader,
                 "isModuleActive",
                 object : XC_MethodReplacement() {
