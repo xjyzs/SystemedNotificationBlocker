@@ -1,4 +1,4 @@
-name: Build and Publish Release APK
+name: 构建并发布 Release APK
 
 on:
   workflow_dispatch:
@@ -76,18 +76,28 @@ jobs:
           path: apks
           merge-multiple: true
 
-      - name: 从 build.gradle.kts 提取版本
+      - name: 从 build.gradle.kts 提取版本信息
         id: version
         run: |
-          VERSION=$(grep -oP 'versionName\s*=\s*\"\K[^"]+' app/build.gradle.kts | head -1)
-          echo "Extracted version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION_NAME=$(grep -oP 'versionName\s*=\s*\"\K[^"]+' app/build.gradle.kts | head -1)
+          VERSION_CODE=$(grep -oP 'versionCode\s*=\s*"?\K[0-9]+' app/build.gradle.kts | head -1)
+          
+          echo "Extracted versionName: $VERSION_NAME"
+          echo "Extracted versionCode: $VERSION_CODE"
+          
+          TAG_NAME="${VERSION_CODE}-${VERSION_NAME}"
+          echo "Normalized Tag: $TAG_NAME"
+          
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: ${{ steps.version.outputs.version_name }}
           body: ${{ github.event.head_commit.message }}
           files: apks/*.apk
