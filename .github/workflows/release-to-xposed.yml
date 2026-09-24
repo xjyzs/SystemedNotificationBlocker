@@ -5,24 +5,41 @@ on:
     types: [published]
   workflow_dispatch:
 
-
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: 从当前仓库下载 APK
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          file: ".*\\.apk"
-          regex: true
-          target: "./"
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 解析 Release 信息并下载 APK
+        id: get_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          else
+            TAG_NAME=$(gh release view --json tagName -q ".tagName")
+          fi
+
+          echo "目标 Release Tag: $TAG_NAME"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+          TITLE=$(gh release view "$TAG_NAME" --json name -q ".name")
+          [ -z "$TITLE" ] && TITLE="$TAG_NAME"
+          echo "name=$TITLE" >> "$GITHUB_OUTPUT"
+          
+          gh release view "$TAG_NAME" --json body -q ".body" > release_notes.md
+
+          gh release download "$TAG_NAME" --pattern "*.apk" --dir "./"
 
       - name: 发布到 Xposed-Modules-Repo
         uses: softprops/action-gh-release@v2
         with:
           repository: "Xposed-Modules-Repo/io.github.xjyzs.systemednotificationblocker"
           token: ${{ secrets.XPOSED_REPO_TOKEN }}
-          tag_name: ${{ github.event.release.tag_name }}
-          name: ${{ github.event.release.name }}
-          body: ${{ github.event.release.body }}
+          tag_name: ${{ steps.get_release.outputs.tag_name }}
+          name: ${{ steps.get_release.outputs.name }}
+          body_path: release_notes.md
           files: "*.apk"
