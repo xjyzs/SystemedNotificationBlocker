@@ -1,6 +1,8 @@
 # 系统级 微信/QQ 消息优化 Xposed 模块
 
-[[仓库] https://github.com/xjyzs/SystemedNotificationBlocker](https://github.com/xjyzs/SystemedNotificationBlocker)
+[[仓库] xjyzs/SystemedNotificationBlocker](https://github.com/xjyzs/SystemedNotificationBlocker)
+
+[[Xposed 模块仓库]](https://github.com/Xposed-Modules-Repo/io.github.xjyzs.systemednotificationblocker)
 
 还在被不该出现的@**所有人**消息打扰吗？来试试这款屏蔽器吧!
 
@@ -14,6 +16,9 @@
 
 ## 亮点
 - 只 Hook 系统框架, 不容易被目标应用检测
+
+## 界面概览
+<img height="400" alt="界面" src="https://github.com/user-attachments/assets/f7397201-2b14-459e-bfb0-e81868cee54b" />
 
 ## 实现原理
 
